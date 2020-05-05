@@ -45,15 +45,11 @@ TrafficLight::TrafficLight()
 
 void TrafficLight::waitForGreen()
 {
-    // FP.5b : add the implementation of the method waitForGreen, in which an infinite while-loop 
-    // runs and repeatedly calls the receive function on the message queue. 
-    // Once it receives TrafficLightPhase::green, the method returns.
-    while (true)
-    {
-        if(_message_queue.receive() == green);
-        return;
-    }
+    while (true) {
+        if (_message_queue.receive() == green) return;
+    }   
 }
+
 
 TrafficLightPhase TrafficLight::getCurrentPhase()
 {
@@ -78,23 +74,23 @@ void TrafficLight::cycleThroughPhases()
     std::uniform_int_distribution<> range(4,6);    
     int rtime = range(timer);
     auto start = std::chrono::system_clock::now();
+    while (true){
+        auto end = std::chrono::system_clock::now();
+        auto diff = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
 
-    while(true)
+        if (rtime < diff)
         {
-                auto end = std::chrono::system_clock::now();
-                auto diff = std::chrono::duration_cast<std::chrono::seconds>(end - start).count();
-                
-                if (rtime < diff)
-                {
-                    _currentPhase = _currentPhase = red ? green : red;
-                  
-                    auto ftrTLPhase = std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send,
+            _currentPhase  = _currentPhase == red ? green : red;            
+
+            auto ftrTLPhase = std::async(std::launch::async, &MessageQueue<TrafficLightPhase>::send,
                         &_message_queue, std::move(_currentPhase));
-                    start = std::chrono::system_clock::now();
-                }
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-            rtime = range(timer);
+
+            ftrTLPhase.wait();
+            start = std::chrono::system_clock::now();
         }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        rtime = range(timer);
+    }
 
 }
 
